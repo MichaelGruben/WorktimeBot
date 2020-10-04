@@ -1,6 +1,7 @@
 <?php
-namespace mgruben\WorktimeBot;
 
+require_once('Telegram.class.php');
+require_once('Database.class.php');
 class ArbeitszeitBot
 {
     const TIMER_START = "\xe2\x96\xb6";
@@ -49,8 +50,7 @@ class ArbeitszeitBot
                 $this->messageId = $update['callback_query']['message']['message_id'];
                 $this->chatId = $update['callback_query']['message']['chat']['id'];
                 $this->telegram = new Telegram($this->chatId, $this->messageId);
-                $dbh = new Database($this->chatId);
-                $this->dbh = $dbh->dbh;
+                $this->dbh = new Database($this->chatId);
                 $this->telegram->sendCurlRequest(
                     'answerCallBackQuery',
                     json_encode(
@@ -132,8 +132,7 @@ class ArbeitszeitBot
                 $this->chatId = $update["message"]["from"]["id"];
                 $this->messageId = $update["message"]['message_id'];
                 $this->telegram = new Telegram($this->chatId, $this->messageId);
-                $dbh = new Database($this->chatId);
-                $this->dbh = $dbh->dbh;
+                $this->dbh = new Database($this->chatId);
                 $this->user = $this->dbh->getUser();
                 switch ($update["message"]["reply_to_message"]["text"]) {
                     case 'Wie viele Stunden arbeitest du pro Woche?':
@@ -158,11 +157,10 @@ class ArbeitszeitBot
             } else {
                 $this->chatId = $update["message"]["from"]["id"];
                 $this->username = $update["message"]["from"]["first_name"];
-                $this->user = $this->dbh->getUser();
                 $this->messageId = $update["message"]['message_id'];
                 $this->telegram = new Telegram($this->chatId, $this->messageId);
-                $dbh = new Database($this->chatId);
-                $this->dbh = $dbh->dbh;
+                $this->dbh = new Database($this->chatId);
+                $this->user = $this->dbh->getUser();
                 if (!empty($update["message"])) {
                     $this->handleMessage($update);
                 }
@@ -173,8 +171,7 @@ class ArbeitszeitBot
                 $this->chatId = $chatId;
                 $this->messageId = null;
                 $this->telegram = new Telegram($this->chatId, $this->messageId);
-                $dbh = new Database($this->chatId);
-                $this->dbh = $dbh->dbh;
+                $this->dbh = new Database($this->chatId);
                 $this->user = $this->dbh->getUser();
                 $timedata = $this->getTodayTotalTimes();
                 if (
@@ -203,7 +200,7 @@ class ArbeitszeitBot
             case self::TIMER_START:
                 if (in_array($this->user->userStatus, array('PAUSE', 'END'))) {
                     $this->answer = 'Na dann, viel Spaß!' . $this->getStatusIcon('START');
-                    $this->updateWorkingTime('START');
+                    $this->dbh->updateWorkingTime('START');
                 } else {
                     $this->answer = 'Du arbeitest bereits!' . $this->getStatusIcon($this->user->userStatus);
                 }
@@ -211,7 +208,7 @@ class ArbeitszeitBot
             case self::TIMER_PAUSE:
                 if (in_array($this->user->userStatus, array('START', 'CONTINUE'))) {
                     $this->answer = 'Erhol dich gut!' . $this->getStatusIcon('PAUSE');
-                    $this->updateWorkingTime('PAUSE');
+                    $this->dbh->updateWorkingTime('PAUSE');
                 } else {
                     $this->answer = 'Du machst bereits Pause oder hast deine Arbeit beendet!' . $this->getStatusIcon($this->user->userStatus);
                 }
@@ -219,7 +216,7 @@ class ArbeitszeitBot
             case 'Weiter machen':
                 if (in_array($this->user->userStatus, array('PAUSE'))) {
                     $this->answer = 'Ich hoffe, du hast dich gut erholt!' . $this->getStatusIcon('CONTINUE');
-                    $this->updateWorkingTime('CONTINUE');
+                    $this->dbh->updateWorkingTime('CONTINUE');
                 } else {
                     $this->answer = 'Du arbeitest bereits oder hast deine Arbeit beendet!' . $this->getStatusIcon($this->user->userStatus);
                 }
@@ -227,7 +224,7 @@ class ArbeitszeitBot
             case self::TIMER_STOP:
                 if (in_array($this->user->userStatus, array('START', 'CONTINUE', 'PAUSE'))) {
                     $this->answer = 'Du hast heute viel geschafft!' . $this->getStatusIcon('END');
-                    $this->updateWorkingTime('END');
+                    $this->dbh->updateWorkingTime('END');
                 } else {
                     $this->answer = 'Du hast deine Arbeit bereits beendet!' . $this->getStatusIcon($this->user->userStatus);
                 }
@@ -316,31 +313,6 @@ class ArbeitszeitBot
         }
     }
 
-    
-
-    function updateWorkingTime($mode)
-    {
-        $row = $this->dbh->getTimeData();
-        if (isset($row->amount)) {
-            $editStatement = $this->dbh->prepare('UPDATE ArbeitszeitTag SET zeiten = :zeiten WHERE id = :currentId');
-            $editStatement->bindParam(':currentId', $row->id, \PDO::PARAM_INT);
-            $currentTimes = json_decode($row->zeiten, true);
-        } else {
-            $editStatement = $this->dbh->prepare('INSERT INTO ArbeitszeitTag (userId, zeiten) VALUES (:userId, :zeiten)');
-            $editStatement->bindParam(':userId', $this->user->id, \PDO::PARAM_INT);
-            $currentTimes = array();
-        }
-        array_push($currentTimes, array(time() => array('mode' => $mode)));
-        $currentTimesJson = json_encode($currentTimes);
-        $editStatement->bindParam(':zeiten', $currentTimesJson, \PDO::PARAM_STR);
-        $editStatement->execute();
-
-        $userStatusUpdateStatement = $this->dbh->prepare('UPDATE ArbeitszeitUser SET userStatus = :userStatus WHERE id = :userId');
-        $userStatusUpdateStatement->bindParam(':userId', $this->user->id, \PDO::PARAM_INT);
-        $userStatusUpdateStatement->bindParam(':userStatus', $mode, \PDO::PARAM_STR);
-        $userStatusUpdateStatement->execute();
-    }
-
     function getStatusIcon($status)
     {
         switch ($status) {
@@ -406,7 +378,7 @@ class ArbeitszeitBot
             $barPadding - 30,
             $imageHeight - 30,
             $colorRed,
-            './FreeSans.ttf',
+            'FreeSans.ttf',
             'Arbeit: ' . round($this->user->hoursPerWeek / $this->user->workingDays * $worktimes['today']['work'], 1) . ' Stunden'
         );
         //today -- pause
@@ -419,10 +391,10 @@ class ArbeitszeitBot
             $barPadding - 30,
             $workheight - 10,
             $colorRed,
-            './FreeSans.ttf',
+            'FreeSans.ttf',
             'Pause: ' . round($this->user->hoursPerWeek / $this->user->workingDays * $worktimes['today']['pause'], 1) . ' Stunden'
         );
-        imagettftext($image, 15, 0, $barPadding + 20, $imageHeight - 10, $colorBlack, './FreeSans.ttf', 'Heute');
+        imagettftext($image, 15, 0, $barPadding + 20, $imageHeight - 10, $colorBlack, 'FreeSans.ttf', 'Heute');
         imagettftext(
             $image,
             20,
@@ -430,7 +402,7 @@ class ArbeitszeitBot
             $barPadding - 30,
             40,
             $colorRed,
-            './FreeSans.ttf',
+            'FreeSans.ttf',
             'Zielzeit: ' . $this->user->hoursPerWeek / $this->user->workingDays . ' Stunden'
         );
 
@@ -449,7 +421,7 @@ class ArbeitszeitBot
             $barWidth + 4 * $barPadding,
             $imageHeight - 30,
             $colorRed,
-            './FreeSans.ttf',
+            'FreeSans.ttf',
             'Arbeit: ' . round($this->user->hoursPerWeek * $worktimes['week']['work'], 1) . ' Stunden'
         );
         //week -- pause
@@ -462,11 +434,11 @@ class ArbeitszeitBot
             $barWidth + 4 * $barPadding,
             $workheight - 10,
             $colorRed,
-            './FreeSans.ttf',
+            'FreeSans.ttf',
             'Pause: ' . round($this->user->hoursPerWeek * $worktimes['week']['pause'], 1) . ' Stunden'
         );
-        imagettftext($image, 15, 0, $barWidth + 5 * $barPadding + 20, $imageHeight - 10, $colorBlack, './FreeSans.ttf', 'Woche');
-        imagettftext($image, 20, 5, $barWidth + 4 * $barPadding, 40, $colorRed, './FreeSans.ttf', 'Zielzeit: ' . number_format($this->user->hoursPerWeek, 1, ',', '.') . ' Stunden');
+        imagettftext($image, 15, 0, $barWidth + 5 * $barPadding + 20, $imageHeight - 10, $colorBlack, 'FreeSans.ttf', 'Woche');
+        imagettftext($image, 20, 5, $barWidth + 4 * $barPadding, 40, $colorRed, 'FreeSans.ttf', 'Zielzeit: ' . number_format($this->user->hoursPerWeek, 1, ',', '.') . ' Stunden');
         for ($day = 1; $day < $this->user->workingDays; $day++) {
             imageline(
                 $image,
@@ -481,7 +453,7 @@ class ArbeitszeitBot
         $currentTime = time();
 
         // Set type of image and send the output
-        imagepng($image, './images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
+        imagepng($image, 'images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
 
         // Release memory
         imageDestroy($image);
@@ -490,13 +462,13 @@ class ArbeitszeitBot
             array_merge(
                 array(
                     'chat_id' => $this->chatId,
-                    'photo' => 'https://baunach-erleben.de/images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png',
+                    'photo' => 'https://baunach-erleben.de/bots/worktimebot/images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png',
                     'disable_notification' => false
                 )
             )
         );
         $this->telegram->sendCurlRequest('sendPhoto', $payload);
-        unlink('./images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
+        unlink('images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
     }
 
     function sendDayOverview()
@@ -529,7 +501,7 @@ class ArbeitszeitBot
             $timestamp = key($time);
             $newxpos = $xpos + ($timestamp - $lasttime) * $secondlength;
             if ($newxpos == 50) {
-                imagettftext($image, 15, 0, $xpos - 20, 125 + $barHeight, $colorBlack, './FreeSans.ttf', date('H:i', $timestamp));
+                imagettftext($image, 15, 0, $xpos - 20, 125 + $barHeight, $colorBlack, 'FreeSans.ttf', date('H:i', $timestamp));
             }
             if (in_array($laststate, array('START', 'CONTINUE', 'PAUSE'))) {
                 switch ($laststate) {
@@ -544,19 +516,19 @@ class ArbeitszeitBot
                         $currentColor = $colorBlack;
                 }
                 imagefilledrectangle($image, $xpos, 100 + $barHeight, $newxpos, 100, $currentColor);
-                imagettftext($image, 15, 0, $newxpos - 20, 125 + $barHeight, $colorBlack, './FreeSans.ttf', date('H:i', $timestamp));
+                imagettftext($image, 15, 0, $newxpos - 20, 125 + $barHeight, $colorBlack, 'FreeSans.ttf', date('H:i', $timestamp));
             }
             $lasttime = $timestamp;
             $laststate = current($time)['mode'];
             $xpos = $newxpos;
         }
-        imagettftext($image, 15, 0, 30, 150 + $barHeight, $colorBlack, './FreeSans.ttf', 'Arbeitszeitkorrektur: ' . $timedata->adjustWorktimeSum . " Minuten");
-        imagettftext($image, 15, 0, 430, 150 + $barHeight, $colorBlack, './FreeSans.ttf', 'Pausenzeitkorrektur: ' . $timedata->adjustPausetimeSum . " Minuten");
+        imagettftext($image, 15, 0, 30, 150 + $barHeight, $colorBlack, 'FreeSans.ttf', 'Arbeitszeitkorrektur: ' . $timedata->adjustWorktimeSum . " Minuten");
+        imagettftext($image, 15, 0, 430, 150 + $barHeight, $colorBlack, 'FreeSans.ttf', 'Pausenzeitkorrektur: ' . $timedata->adjustPausetimeSum . " Minuten");
 
         $currentTime = time();
 
         // Set type of image and send the output
-        imagepng($image, './images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
+        imagepng($image, 'images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
 
         // Release memory
         imageDestroy($image);
@@ -565,13 +537,13 @@ class ArbeitszeitBot
             array_merge(
                 array(
                     'chat_id' => $this->chatId,
-                    'photo' => 'https://baunach-erleben.de/images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png',
+                    'photo' => 'https://baunach-erleben.de/bots/worktimebot/images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png',
                     'disable_notification' => false
                 )
             )
         );
         $this->telegram->sendCurlRequest('sendPhoto', $payload);
-        unlink('./images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
+        unlink('images/workingtimeBotStats/' . $this->chatId . $currentTime . '.png');
         $this->answer = 'Das ist deine heutige Zeitübersicht. Orange ist arbeit - Grün ist Pause.';
     }
 

@@ -1,6 +1,4 @@
 <?php
-namespace mgruben\WorktimeBot;
-
 class Telegram {
     public function __construct($chatId, $messageId) {
         $this->chatId = $chatId;

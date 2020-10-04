@@ -1,6 +1,5 @@
 <?php
-namespace mgruben\WorktimeBot;
-use mgruben\WorktimeBot\ArbeitszeitBot;
+require_once('ArbeitszeitBot.class.php');
 
 error_reporting(E_ALL);
 setlocale(LC_ALL, 'de_DE');

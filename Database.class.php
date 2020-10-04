@@ -1,7 +1,4 @@
 <?php
-
-namespace mgruben\WorktimeBot;
-
 class Database
 {
     public function __construct($chatId)
@@ -11,12 +8,13 @@ class Database
         $dsn = 'mysql:dbname=' . $this->config['database']['db_name'] . ';host=' . $this->config['database']['db_host'] . ';port=' . $this->config['database']['db_port'] . ';charset=utf8mb4';
         $user = $this->config['database']['db_user'];
         $password = $this->config['database']['db_password'];
-
+        
         try {
             $this->dbh = new \PDO($dsn, $user, $password);
         } catch (\PDOException $e) {
             echo 'Connection failed: ' . $e->getMessage();
         }
+        $this->user = $this->getUser();
     }
 
     public function addUser()
@@ -101,5 +99,28 @@ class Database
         $editStatement->execute();
 
         return $this->getUser();
+    }
+
+    function updateWorkingTime($mode)
+    {
+        $row = $this->getTimeData();
+        if (isset($row->amount)) {
+            $editStatement = $this->dbh->prepare('UPDATE ArbeitszeitTag SET zeiten = :zeiten WHERE id = :currentId');
+            $editStatement->bindParam(':currentId', $row->id, \PDO::PARAM_INT);
+            $currentTimes = json_decode($row->zeiten, true);
+        } else {
+            $editStatement = $this->dbh->prepare('INSERT INTO ArbeitszeitTag (userId, zeiten) VALUES (:userId, :zeiten)');
+            $editStatement->bindParam(':userId', $this->user->id, \PDO::PARAM_INT);
+            $currentTimes = array();
+        }
+        array_push($currentTimes, array(time() => array('mode' => $mode)));
+        $currentTimesJson = json_encode($currentTimes);
+        $editStatement->bindParam(':zeiten', $currentTimesJson, \PDO::PARAM_STR);
+        $editStatement->execute();
+
+        $userStatusUpdateStatement = $this->dbh->prepare('UPDATE ArbeitszeitUser SET userStatus = :userStatus WHERE id = :userId');
+        $userStatusUpdateStatement->bindParam(':userId', $this->user->id, \PDO::PARAM_INT);
+        $userStatusUpdateStatement->bindParam(':userStatus', $mode, \PDO::PARAM_STR);
+        $userStatusUpdateStatement->execute();
     }
 }
