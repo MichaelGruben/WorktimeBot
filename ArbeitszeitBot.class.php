@@ -2,40 +2,9 @@
 
 require_once('Telegram.class.php');
 require_once('Database.class.php');
+require_once('Strings.class.php');
 class ArbeitszeitBot
 {
-    const TIMER_START = "\xe2\x96\xb6";
-    const TIMER_PAUSE = "\xe2\x8f\xb8";
-    const TIMER_STOP = "\xe2\x8f\xb9";
-
-    const FORCE_REPLY_ADJUST_WORKTIME_PLUS = '+15 Minuten Arbeit';
-    const FORCE_REPLY_ADJUST_WORKTIME_MINUS = '-15 Minuten Arbeit';
-    const FORCE_REPLY_ADJUST_WORKTIME_CUSTOM = 'Sende mir deine Arbeitszeit-Korrektur als z.B. -1,5h oder 90m';
-    const FORCE_REPLY_ADJUST_PAUSETIME_PLUS = '+15 Minuten Pause';
-    const FORCE_REPLY_ADJUST_PAUSETIME_MINUS = '-15 Minuten Pause';
-    const FORCE_REPLY_ADJUST_PAUSETIME_CUSTOM = 'Sende mir deine Pausenzeit-Korrektur als z.B. -1,5h oder 90m';
-
-    const MENU = array(
-        'reply_markup' => array(
-            'keyboard' => array(
-                array(
-                    array('text' => self::TIMER_START),
-                    array('text' => self::TIMER_PAUSE),
-                    array('text' => self::TIMER_STOP),
-                ),
-                array(
-                    array('text' => 'Tagesübersicht'),
-                    array('text' => 'Korrektur')
-                ),
-                array(
-                    array('text' => 'Statistik'),
-                    array('text' => 'Einstellungen',)
-                )
-            ),
-            'resize_keyboard' => true
-        )
-    );
-
     const CRON_TIMING = 15;
     const MAX_PAUSE_LENGTH = 60;
 
@@ -64,7 +33,7 @@ class ArbeitszeitBot
                     case 'setWorkingHours':
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            'Wie viele Stunden arbeitest du pro Woche?',
+                            Strings::QUESTION_SETUP_WORKHOURS,
                             array(
                                 'reply_markup' => array(
                                     'force_reply' => true
@@ -75,7 +44,7 @@ class ArbeitszeitBot
                     case 'setWorkingDays':
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            'Wie viele Tage arbeitest du pro Woche?',
+                            Strings::QUESTION_SETUP_WORKDAYS,
                             array(
                                 'reply_markup' => array('force_reply' => true)
                             )
@@ -85,20 +54,20 @@ class ArbeitszeitBot
                         $this->dbh->adjustWorkingTime('15', 'worktime');
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            self::FORCE_REPLY_ADJUST_WORKTIME_PLUS
+                            Strings::FORCE_REPLY_ADJUST_WORKTIME_PLUS
                         );
                         break;
                     case 'adjustWorkMinus':
                         $this->dbh->adjustWorkingTime('-15', 'worktime');
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            self::FORCE_REPLY_ADJUST_WORKTIME_MINUS
+                            Strings::FORCE_REPLY_ADJUST_WORKTIME_MINUS
                         );
                         break;
                     case 'adjustWorkCustom':
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            self::FORCE_REPLY_ADJUST_WORKTIME_CUSTOM,
+                            Strings::FORCE_REPLY_ADJUST_WORKTIME_CUSTOM,
                             array(
                                 'reply_markup' => array('force_reply' => true)
                             )
@@ -108,20 +77,20 @@ class ArbeitszeitBot
                         $this->dbh->adjustWorkingTime('15', 'pausetime');
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            self::FORCE_REPLY_ADJUST_PAUSETIME_PLUS
+                            Strings::FORCE_REPLY_ADJUST_PAUSETIME_PLUS
                         );
                         break;
                     case 'adjustPauseMinus':
                         $this->dbh->adjustWorkingTime('-15', 'pausetime');
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            self::FORCE_REPLY_ADJUST_PAUSETIME_MINUS
+                            Strings::FORCE_REPLY_ADJUST_PAUSETIME_MINUS
                         );
                         break;
                     case 'adjustPauseCustom':
                         $this->telegram->sendMessage(
                             'sendMessage',
-                            self::FORCE_REPLY_ADJUST_PAUSETIME_CUSTOM,
+                            Strings::FORCE_REPLY_ADJUST_PAUSETIME_CUSTOM,
                             array(
                                 'reply_markup' => array('force_reply' => true)
                             )
@@ -135,21 +104,21 @@ class ArbeitszeitBot
                 $this->dbh = new Database($this->chatId);
                 $this->user = $this->dbh->getUser();
                 switch ($update["message"]["reply_to_message"]["text"]) {
-                    case 'Wie viele Stunden arbeitest du pro Woche?':
+                    case Strings::QUESTION_SETUP_WORKHOURS:
                         $this->user = $this->dbh->updateUser($this->user, 'hoursPerWeek', $update["message"]["text"]);
-                        $this->telegram->sendMessage('sendMessage', 'Du arbeitest nun ' . $this->user->hoursPerWeek . ' Stunden pro Woche', self::MENU);
+                        $this->telegram->sendMessage('sendMessage', sprintf(Strings::CONFIRM_SETUP_WORKHOURS, $this->user->hoursPerWeek), Strings::MENU);
                         break;
-                    case 'Wie viele Tage arbeitest du pro Woche?':
+                    case Strings::QUESTION_SETUP_WORKDAYS:
                         $this->user = $this->dbh->updateUser($this->user, 'workingDays', $update["message"]["text"]);
-                        $this->telegram->sendMessage('sendMessage', 'Du arbeitest nun ' . $this->user->workingDays . ' Tage pro Woche', self::MENU);
+                        $this->telegram->sendMessage('sendMessage', sprintf(Strings::CONFIRM_SETUP_WORKDAYS, $this->user->workingDays), Strings::MENU);
                         break;
-                    case self::FORCE_REPLY_ADJUST_WORKTIME_CUSTOM:
-                        $this->dbh->adjustWorkingTime($update["message"]["text"], 'worktime');
-                        $this->telegram->sendMessage('sendMessage', 'Ich habe deine Arbeitszeit entsprechend aktualisieren', self::MENU);
+                    case Strings::FORCE_REPLY_ADJUST_WORKTIME_CUSTOM:
+                        $amount = $this->dbh->adjustWorkingTime($update["message"]["text"], 'worktime');
+                        $this->telegram->sendMessage('sendMessage', sprintf(Strings::CONFIRM_UPDATE_WORKTIME, $amount), Strings::MENU);
                         break;
-                    case self::FORCE_REPLY_ADJUST_PAUSETIME_CUSTOM:
-                        $this->dbh->adjustWorkingTime($update["message"]["text"], 'pausetime');
-                        $this->telegram->sendMessage('sendMessage', 'Ich habe deine Pausenzeit entsprechend aktualisieren', self::MENU);
+                    case Strings::FORCE_REPLY_ADJUST_PAUSETIME_CUSTOM:
+                        $amount = $this->dbh->adjustWorkingTime($update["message"]["text"], 'pausetime');
+                        $this->telegram->sendMessage('sendMessage', sprintf(Strings::CONFIRM_UPDATE_PAUSETIME, $amount), Strings::MENU);
                         break;
                     default:
                         $this->telegram->sendMessage('sendMessage', $update["message"]["reply_to_message"]["text"]);
@@ -179,14 +148,14 @@ class ArbeitszeitBot
                     (($this->user->hoursPerDay + self::CRON_TIMING / 60) > $timedata->worksum) and
                     ($this->user->userStatus === 'START')
                 ) {
-                    $this->telegram->sendMessage('sendMessage', 'Du arbeitest bereits ' . round($timedata->worksum, 1) . ' Stunden. Ab jetzt machst du Überstunden.');
+                    $this->telegram->sendMessage('sendMessage', sprintf(Strings::HINT_WORKTIME, round($timedata->worksum, 1)));
                 }
                 if (
                     ($timedata->pausesum > self::MAX_PAUSE_LENGTH / 60) and
                     ((self::MAX_PAUSE_LENGTH / 60 + self::CRON_TIMING / 60) > $timedata->pausesum) and
                     ($this->user->userStatus === 'PAUSE')
                 ) {
-                    $this->telegram->sendMessage('sendMessage', 'Du machst bereits ' . round($timedata->pausesum, 1) . ' Stunden pause. Arbeitest du schon wieder?.');
+                    $this->telegram->sendMessage('sendMessage', sprintf(Strings::HINT_PAUSETIME, round($timedata->pausesum, 1)));
                 }
             }
         }
@@ -197,7 +166,7 @@ class ArbeitszeitBot
         $this->user = $this->dbh->getUser();
 
         switch ($update['message']['text']) {
-            case self::TIMER_START:
+            case Strings::TIMER_START:
                 if (in_array($this->user->userStatus, array('PAUSE', 'END'))) {
                     $this->answer = 'Na dann, viel Spaß!' . $this->getStatusIcon('START');
                     $this->dbh->updateWorkingTime('START');
@@ -205,7 +174,7 @@ class ArbeitszeitBot
                     $this->answer = 'Du arbeitest bereits!' . $this->getStatusIcon($this->user->userStatus);
                 }
                 break;
-            case self::TIMER_PAUSE:
+            case Strings::TIMER_PAUSE:
                 if (in_array($this->user->userStatus, array('START', 'CONTINUE'))) {
                     $this->answer = 'Erhol dich gut!' . $this->getStatusIcon('PAUSE');
                     $this->dbh->updateWorkingTime('PAUSE');
@@ -221,7 +190,7 @@ class ArbeitszeitBot
                     $this->answer = 'Du arbeitest bereits oder hast deine Arbeit beendet!' . $this->getStatusIcon($this->user->userStatus);
                 }
                 break;
-            case self::TIMER_STOP:
+            case Strings::TIMER_STOP:
                 if (in_array($this->user->userStatus, array('START', 'CONTINUE', 'PAUSE'))) {
                     $this->answer = 'Du hast heute viel geschafft!' . $this->getStatusIcon('END');
                     $this->dbh->updateWorkingTime('END');
@@ -308,7 +277,7 @@ class ArbeitszeitBot
             $this->telegram->sendMessage(
                 $method,
                 $this->answer,
-                self::MENU
+                Strings::MENU
             );
         }
     }

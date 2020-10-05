@@ -62,6 +62,7 @@ class Database
         $editStatement->bindParam(':currentId', $rowid, \PDO::PARAM_INT);
         $editStatement->bindParam(':amount', $amountInt, \PDO::PARAM_INT);
         $editStatement->execute();
+        return intval($amount);
     }
 
     public function getTimeData($dateFrom = 0, $dateTo = 0)
