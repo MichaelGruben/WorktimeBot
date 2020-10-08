@@ -1,9 +1,8 @@
 <?php
 class Database
 {
-    public function __construct($chatId)
+    public function __construct($chatId = null)
     {
-        $this->chatId = $chatId;
         $this->config = parse_ini_file('./worktimebot.ini.php', true);
         $dsn = 'mysql:dbname=' . $this->config['database']['db_name'] . ';host=' . $this->config['database']['db_host'] . ';port=' . $this->config['database']['db_port'] . ';charset=utf8mb4';
         $user = $this->config['database']['db_user'];
@@ -14,7 +13,10 @@ class Database
         } catch (\PDOException $e) {
             echo 'Connection failed: ' . $e->getMessage();
         }
-        $this->user = $this->getUser();
+        if (isset($chatId)) {
+            $this->chatId = $chatId;
+            $this->user = $this->getUser();
+        }
     }
 
     public function addUser()

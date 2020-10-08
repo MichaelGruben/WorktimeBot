@@ -135,6 +135,7 @@ class ArbeitszeitBot
                 }
             }
         } else if ($cronMethod == 'checkTarget') {
+            $this->dbh = new Database();
             $chatIds = $this->dbh->getRunningUsers();
             foreach ($chatIds as $chatId) {
                 $this->chatId = $chatId;
