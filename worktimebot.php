@@ -3,7 +3,7 @@ require_once('ArbeitszeitBot.class.php');
 
 error_reporting(E_ALL);
 setlocale(LC_ALL, 'de_DE');
-$config = parse_ini_file('./worktimebot.ini.php', true);
+$config = parse_ini_file('worktimebot.ini.php', true);
 if (!empty($_GET['teleToken']) && password_verify($config['application']['teleToken'], $_GET['teleToken'])) {
     $content = file_get_contents("php://input");
     $bot = new ArbeitszeitBot();

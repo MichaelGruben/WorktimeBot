@@ -10,7 +10,7 @@ class ArbeitszeitBot
 
     function __construct($cronMethod = null)
     {
-        $this->config = parse_ini_file('./worktimebot.ini.php', true);
+        $this->config = parse_ini_file('worktimebot.ini.php', true);
         $content = file_get_contents("php://input");
         error_log($content);
         $update = json_decode($content, TRUE);

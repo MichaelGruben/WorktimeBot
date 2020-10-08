@@ -3,7 +3,7 @@ class Database
 {
     public function __construct($chatId = null)
     {
-        $this->config = parse_ini_file('./worktimebot.ini.php', true);
+        $this->config = parse_ini_file('worktimebot.ini.php', true);
         $dsn = 'mysql:dbname=' . $this->config['database']['db_name'] . ';host=' . $this->config['database']['db_host'] . ';port=' . $this->config['database']['db_port'] . ';charset=utf8mb4';
         $user = $this->config['database']['db_user'];
         $password = $this->config['database']['db_password'];
