@@ -19,6 +19,9 @@ class ArbeitszeitBot
                 $this->messageId = $update['callback_query']['message']['message_id'];
                 $this->chatId = $update['callback_query']['message']['chat']['id'];
                 $this->telegram = new Telegram($this->chatId, $this->messageId);
+                $notimeData = function () {
+                    $this->telegram->sendMessage('sendMessage', Strings::HINT_NO_TIME_DATA);
+                };
                 $this->dbh = new Database($this->chatId);
                 $this->telegram->sendCurlRequest(
                     'answerCallBackQuery',
@@ -51,14 +54,14 @@ class ArbeitszeitBot
                         );
                         break;
                     case 'adjustWorkPlus':
-                        $this->dbh->adjustWorkingTime('15', 'worktime');
+                        $this->dbh->adjustWorkingTime('15', 'worktime', $notimeData);
                         $this->telegram->sendMessage(
                             'sendMessage',
                             Strings::FORCE_REPLY_ADJUST_WORKTIME_PLUS
                         );
                         break;
                     case 'adjustWorkMinus':
-                        $this->dbh->adjustWorkingTime('-15', 'worktime');
+                        $this->dbh->adjustWorkingTime('-15', 'worktime', $notimeData);
                         $this->telegram->sendMessage(
                             'sendMessage',
                             Strings::FORCE_REPLY_ADJUST_WORKTIME_MINUS
@@ -74,14 +77,14 @@ class ArbeitszeitBot
                         );
                         break;
                     case 'adjustPausePlus':
-                        $this->dbh->adjustWorkingTime('15', 'pausetime');
+                        $this->dbh->adjustWorkingTime('15', 'pausetime', $notimeData);
                         $this->telegram->sendMessage(
                             'sendMessage',
                             Strings::FORCE_REPLY_ADJUST_PAUSETIME_PLUS
                         );
                         break;
                     case 'adjustPauseMinus':
-                        $this->dbh->adjustWorkingTime('-15', 'pausetime');
+                        $this->dbh->adjustWorkingTime('-15', 'pausetime', $notimeData);
                         $this->telegram->sendMessage(
                             'sendMessage',
                             Strings::FORCE_REPLY_ADJUST_PAUSETIME_MINUS
@@ -101,6 +104,9 @@ class ArbeitszeitBot
                 $this->chatId = $update["message"]["from"]["id"];
                 $this->messageId = $update["message"]['message_id'];
                 $this->telegram = new Telegram($this->chatId, $this->messageId);
+                $notimeData = function () {
+                    $this->telegram->sendMessage('sendMessage', Strings::HINT_NO_TIME_DATA);
+                };
                 $this->dbh = new Database($this->chatId);
                 $this->user = $this->dbh->getUser();
                 switch ($update["message"]["reply_to_message"]["text"]) {
@@ -113,11 +119,11 @@ class ArbeitszeitBot
                         $this->telegram->sendMessage('sendMessage', sprintf(Strings::CONFIRM_SETUP_WORKDAYS, $this->user->workingDays), Strings::MENU);
                         break;
                     case Strings::FORCE_REPLY_ADJUST_WORKTIME_CUSTOM:
-                        $amount = $this->dbh->adjustWorkingTime($update["message"]["text"], 'worktime');
+                        $amount = $this->dbh->adjustWorkingTime($update["message"]["text"], 'worktime', $notimeData);
                         $this->telegram->sendMessage('sendMessage', sprintf(Strings::CONFIRM_UPDATE_WORKTIME, $amount), Strings::MENU);
                         break;
                     case Strings::FORCE_REPLY_ADJUST_PAUSETIME_CUSTOM:
-                        $amount = $this->dbh->adjustWorkingTime($update["message"]["text"], 'pausetime');
+                        $amount = $this->dbh->adjustWorkingTime($update["message"]["text"], 'pausetime', $notimeData);
                         $this->telegram->sendMessage('sendMessage', sprintf(Strings::CONFIRM_UPDATE_PAUSETIME, $amount), Strings::MENU);
                         break;
                     default:

@@ -7,7 +7,7 @@ class Database
         $dsn = 'mysql:dbname=' . $this->config['database']['db_name'] . ';host=' . $this->config['database']['db_host'] . ';port=' . $this->config['database']['db_port'] . ';charset=utf8mb4';
         $user = $this->config['database']['db_user'];
         $password = $this->config['database']['db_password'];
-        
+
         try {
             $this->dbh = new \PDO($dsn, $user, $password);
         } catch (\PDOException $e) {
@@ -45,9 +45,13 @@ class Database
         return $user;
     }
 
-    public function adjustWorkingTime($amount, $kind)
+    public function adjustWorkingTime($amount, $kind, $noTimeData = null)
     {
         $row = $this->getTimeData();
+        if ($row === false && $noTimeData !== null) {
+            $noTimeData();
+            exit;
+        }
         if (strpos($amount, 'h') || strpos($amount, 'tunde')) {
             $amount *= 60;
         }

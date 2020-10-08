@@ -22,6 +22,7 @@ class Strings {
 
     const HINT_WORKTIME = 'Du arbeitest bereits %f Stunden. Ab jetzt machst du Überstunden.';
     const HINT_PAUSETIME = 'Du machst bereits seit %f Stunden Pause. Arbeitest du schon wieder?.';
+    const HINT_NO_TIME_DATA = 'Du hast heute noch keine Arbeitszeit gebucht. Leider kann ich so nichts korrigieren.';
 
     const MENU = array(
         'reply_markup' => array(
