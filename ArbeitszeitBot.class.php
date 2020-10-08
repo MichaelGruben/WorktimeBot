@@ -3,7 +3,17 @@
 require_once('Telegram.class.php');
 require_once('Database.class.php');
 require_once('Strings.class.php');
-class ArbeitszeitBot
+
+interface iArbeitszeitBot {
+    public function getStatusIcon(string $status);
+    public function getTodayTotalTimes();
+    public function getWorktimes();
+    public function handleMessage(array $update, string $method = 'sendMessage');
+    public function sendDayOverview();
+    public function sendStatistic();
+}
+
+class ArbeitszeitBot implements iArbeitszeitBot
 {
     const CRON_TIMING = 15;
     const MAX_PAUSE_LENGTH = 60;
