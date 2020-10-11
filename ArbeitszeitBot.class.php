@@ -4,7 +4,8 @@ require_once('Telegram.class.php');
 require_once('Database.class.php');
 require_once('Strings.class.php');
 
-interface iArbeitszeitBot {
+interface iArbeitszeitBot
+{
     public function getStatusIcon(string $status);
     public function getTodayTotalTimes();
     public function getWorktimes();
@@ -178,7 +179,7 @@ class ArbeitszeitBot implements iArbeitszeitBot
         }
     }
 
-    function handleMessage($update, $method = 'sendMessage')
+    function handleMessage(array $update, string $method = 'sendMessage')
     {
         $this->user = $this->dbh->getUser();
 
@@ -299,7 +300,7 @@ class ArbeitszeitBot implements iArbeitszeitBot
         }
     }
 
-    function getStatusIcon($status)
+    function getStatusIcon(string $status)
     {
         switch ($status) {
             case 'START':
