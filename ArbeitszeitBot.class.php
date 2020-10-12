@@ -166,14 +166,14 @@ class ArbeitszeitBot implements iArbeitszeitBot
                     (($this->user->hoursPerDay + self::CRON_TIMING / 60) > $timedata->worksum) and
                     ($this->user->userStatus === 'START')
                 ) {
-                    $this->telegram->sendMessage('sendMessage', sprintf(Strings::HINT_WORKTIME, round($timedata->worksum, 1)));
+                    $this->telegram->sendMessage('sendMessage', sprintf(Strings::HINT_WORKTIME, $timedata->worksum));
                 }
                 if (
                     ($timedata->pausesum > self::MAX_PAUSE_LENGTH / 60) and
                     ((self::MAX_PAUSE_LENGTH / 60 + self::CRON_TIMING / 60) > $timedata->pausesum) and
                     ($this->user->userStatus === 'PAUSE')
                 ) {
-                    $this->telegram->sendMessage('sendMessage', sprintf(Strings::HINT_PAUSETIME, round($timedata->pausesum, 1)));
+                    $this->telegram->sendMessage('sendMessage', sprintf(Strings::HINT_PAUSETIME, $timedata->pausesum, 1));
                 }
             }
         }

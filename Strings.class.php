@@ -20,8 +20,8 @@ class Strings {
     const CONFIRM_UPDATE_WORKTIME = 'Ich habe deine Arbeitszeit entsprechend um %d Minuten aktualisiert';
     const CONFIRM_UPDATE_PAUSETIME = 'Ich habe deine Pausenzeit entsprechend um %d Minuten aktualisiert';
 
-    const HINT_WORKTIME = 'Du arbeitest bereits %f.1 Stunden. Ab jetzt machst du Überstunden.';
-    const HINT_PAUSETIME = 'Du machst bereits seit %f.1 Stunden Pause. Arbeitest du schon wieder?.';
+    const HINT_WORKTIME = 'Du arbeitest bereits %.1f Stunden. Ab jetzt machst du Überstunden.';
+    const HINT_PAUSETIME = 'Du machst bereits seit %.1f Stunden Pause. Arbeitest du schon wieder?.';
     const HINT_NO_TIME_DATA = 'Du hast heute noch keine Arbeitszeit gebucht. Leider kann ich so nichts korrigieren.';
 
     const MENU = array(
